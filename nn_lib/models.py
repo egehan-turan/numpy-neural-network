@@ -1,6 +1,7 @@
 import numpy as np
 from . import losses
 from . import optimizers
+from tqdm import tqdm
 
 class Sequential:
     def __init__(self, layers, loss='MSE', optimizer='SGD', 
@@ -75,17 +76,26 @@ class Sequential:
 
         for epoch in range(epochs):
             indices = np.random.permutation(n_samples)
-            X_shuffled = X[:, indices]
-            Y_shuffled = Y[:, indices]
+            X_shuffled = X[..., indices]
+            Y_shuffled = Y[..., indices]
 
-            for i in range(0, n_samples, batch_size):
-                X_mini = X_shuffled[:, i : i + batch_size]
-                Y_mini = Y_shuffled[:, i : i + batch_size]
+            epoch_loss = 0.0
+            n_batches = 0
+
+            pbar = tqdm(range(0, n_samples, batch_size), 
+                        desc=f"Epoch {epoch+1}/{epochs}",
+                        unit="batch")
+            for i in pbar:
+                X_mini = X_shuffled[..., i : i + batch_size]
+                Y_mini = Y_shuffled[..., i : i + batch_size]
 
                 Y_hat = self.forward(X_mini)
+                batch_loss = self.loss.loss(Y_mini, Y_hat)
+                epoch_loss += batch_loss
+                n_batches += 1
+
                 grad = self.loss.gradient(Y_mini, Y_hat)
                 self.backward(grad)
-
                 self.optimizer.optimize(self.layers)
 
                 # Reset gradients
@@ -93,8 +103,10 @@ class Sequential:
                     for param in layer.get_parameters():
                         param.zero_grad()
 
-            full_pred = self.forward(X)
-            print(f"Epoch {epoch}: Loss = {self.loss.loss(Y, full_pred)}")
+                pbar.set_postfix({'loss': f'{(epoch_loss / n_batches):.4f}'})
+
+            avg_loss = epoch_loss / n_batches
+            print(f"Epoch {epoch+1}: Avg Loss = {avg_loss:.4f}")
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         Y_hat = self.forward(X)

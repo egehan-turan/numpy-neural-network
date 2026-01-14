@@ -18,22 +18,21 @@ def create_spiral_data(samples, classes):
         y[ix] = j
     return X.T, y
 
-# 1. Generate the data
-# Let's create 3 classes with 200 points each
+# Generate the data
 num_classes = 3
 X, Y = create_spiral_data(samples=1000, classes=num_classes)
 
 # Define the Model
 model = nn.models.Sequential([
-    nn.layers.Dense(128), 
-    nn.activations.ReLU(),
     nn.layers.Dense(64), 
+    nn.activations.ReLU(),
+    nn.layers.Dense(32), 
     nn.activations.ReLU(),
     nn.layers.Dense(3)  
 ], 
 loss="SoftmaxCCE", 
 optimizer='Adam', 
-optimizer_params={'learning_rate': 0.01} # Slightly higher LR can help speed up initial learning
+optimizer_params={'learning_rate': 0.01} 
 )
 
 Y_one_hot = np.eye(num_classes)[Y].T
