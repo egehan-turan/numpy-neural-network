@@ -96,3 +96,11 @@ class Sequential:
             full_pred = self.forward(X)
             print(f"Epoch {epoch}: Loss = {self.loss.loss(Y, full_pred)}")
 
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        Y_hat = self.forward(X)
+        
+        # If the loss class specifies an activation, use it
+        if hasattr(self.loss, 'activation'):
+            return self.loss.activation.forward(Y_hat)
+            
+        return Y_hat
