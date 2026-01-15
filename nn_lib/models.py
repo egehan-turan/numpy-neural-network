@@ -60,7 +60,7 @@ class Model:
         else:
             self._optimizer = value
 
-    def train(self, X: np.ndarray, Y: np.ndarray, epochs: int = 10, batch_size: int = 32) -> None:
+    def train(self, X: np.ndarray, Y: np.ndarray, epochs: int = 10, batch_size: int = 32, update_interval: float=0.5) -> None:
         n_samples = X.shape[-1]
 
         for epoch in range(epochs):
@@ -73,7 +73,8 @@ class Model:
 
             pbar = tqdm(range(0, n_samples, batch_size), 
                         desc=f"Epoch {epoch+1}/{epochs}",
-                        unit="batch")
+                        unit="batch",
+                        mininterval=update_interval)
             for i in pbar:
                 X_mini = X_shuffled[..., i : i + batch_size]
                 Y_mini = Y_shuffled[..., i : i + batch_size]
@@ -92,7 +93,7 @@ class Model:
                     for param in layer.get_parameters():
                         param.zero_grad()
 
-                pbar.set_postfix({'loss': f'{(epoch_loss / n_batches):.4f}'})
+                pbar.set_postfix({'loss': f'{(epoch_loss / n_batches):.4f}'}, refresh=False)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         Y_hat = self.forward(X)
