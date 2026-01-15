@@ -21,25 +21,10 @@ def create_spiral_data(samples, classes):
 # Generate the data
 num_classes = 3
 X, Y = create_spiral_data(samples=1000, classes=num_classes)
-
-# Define the Model
-model = nn.models.Sequential([
-    nn.layers.Dense(64), 
-    nn.activations.ReLU(),
-    nn.layers.Dense(32), 
-    nn.activations.ReLU(),
-    nn.layers.Dense(3)  
-], 
-loss="SoftmaxCCE", 
-optimizer='Adam', 
-optimizer_params={'learning_rate': 0.01} 
-)
-
 Y_one_hot = np.eye(num_classes)[Y].T
 
-# Train
-print("Training started...")
-model.train(X, Y_one_hot, epochs=5000)
+# Define the Model
+model = nn.models.Model.load('spiral_model.pkl')
 
 # Test the results
 # --- 1. Define the grid boundaries ---
@@ -86,6 +71,3 @@ print("\nFinal Predictions:")
 print(predictions)
 print("\nAnswer:")
 print(Y)
-
-# Save model
-model.save('spiral_model.pkl')
