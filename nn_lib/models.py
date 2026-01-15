@@ -4,6 +4,7 @@ from . import optimizers
 from tqdm import tqdm
 import pickle
 
+
 class Model:
     def __init__(self, layers, loss, optimizer, 
                 loss_params=None, optimizer_params=None):
@@ -52,8 +53,8 @@ class Model:
         """
         if isinstance(value, str):
             try:
-                opt_class = getattr(optimizers, value)
-                self._optimizer = opt_class(**self._optimizer_params)
+                optimizer_class = getattr(optimizers, value)
+                self._optimizer = optimizer_class(**self._optimizer_params)
             except AttributeError:
                 raise ValueError(f"Optimizer '{value}' not found in optimizers.py")
         else:
@@ -104,17 +105,17 @@ class Model:
 
     def save(self, filepath: str) -> None:
         """
-        Save the model architecture and weights to a file.
+        Save the model architecture and parameters to a file.
         Only saves essential information: layer configs and parameter values.
         """
-        # Extract lightweight layer information only containing weights
+        # Extract lightweight layer information only containing parameters
         layers_data = []
         for layer in self.layers:
             layer_data = {
                 'class_name': layer.__class__.__name__,
                 'module': layer.__class__.__module__,
                 'config': layer.get_config() if hasattr(layer, 'get_config') else {},
-                'weights': [param.data for param in layer.get_parameters()]
+                'parameters': [param.data for param in layer.get_parameters()]
             }
             layers_data.append(layer_data)
         
@@ -142,7 +143,7 @@ class Model:
         
         layers = []
         for layer_data in model_data['layers']:
-
+            # Read layer name and find class
             module_parts = layer_data['module'].split('.')
             if module_parts[0] == '.':
                 from . import layers as layers_module
@@ -157,16 +158,15 @@ class Model:
             # Create layer instance
             layer = layer_class(**layer_data['config'])
             
-            # Set weights if available using the layer's set_weights method
-            if layer_data['weights'] and hasattr(layer, 'set_weights'):
-                layer.set_weights(layer_data['weights'])
+            # Set parameters if available using the layer's set_parameters method
+            if layer_data['parameters'] and hasattr(layer, 'set_parameters'):
+                layer.set_parameters(layer_data['parameters'])
             
             layers.append(layer)
         
-        # Get the model
+        # Read model name and find class
         model_class = globals().get(model_data['class_name'], cls)
 
-        
         # Create model instance
         model = model_class(
             layers=layers,

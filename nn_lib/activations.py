@@ -7,8 +7,8 @@ class ReLU(Layer):
         self.built = True
 
     def forward(self, Z: np.ndarray) -> np.ndarray:
-        self.Z = Z
-        return np.maximum(0, Z)
+        self.Z = self._cast_input(Z)
+        return np.maximum(0, self.Z)
 
     def backward(self, dA: np.ndarray) -> np.ndarray:
         self.dZ = dA.copy()
@@ -22,6 +22,7 @@ class Sigmoid(Layer):
         self.built = True
 
     def forward(self, Z: np.ndarray) -> np.ndarray:
+        Z = self._cast_input(Z)
         self.A = 1 / (1 + np.exp(-Z))
         return self.A
 
@@ -34,6 +35,7 @@ class Softmax(Layer):
         self.built = True
 
     def forward(self, Z: np.ndarray) -> np.ndarray:
+        Z = self._cast_input(Z)
         # For this to work in arbitrary dimentions
         feature_axes = tuple(range(Z.ndim - 1))
     

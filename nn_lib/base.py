@@ -1,5 +1,8 @@
+import numpy as np
+
 class Layer:
-    def __init__(self):
+    def __init__(self, dtype=None):
+        self.dtype = dtype
         self.built = False
 
     def build(self, input_shape):
@@ -8,6 +11,17 @@ class Layer:
         Users are not forced to provide the shape of the input.
         """
         pass
+
+    def _cast_input(self, A):
+        """
+        Cast input to layer dtype if explicitly set.
+        Otherwise inherit dtype from input.
+        """
+        if self.dtype is not None:
+            return np.asarray(A, dtype=self.dtype)
+        else:
+            self.dtype = A.dtype
+            return A
 
     def forward(self, input_data):
         """
