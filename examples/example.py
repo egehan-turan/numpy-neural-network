@@ -1,3 +1,6 @@
+"""
+XOR test example
+"""
 import numpy as np
 import nn_lib as nn
 

@@ -1,5 +1,6 @@
 """
-Code taken from Harvard CS50 AI Course
+Pygame code taken from Harvard CS50 AI Course
+https://cs50.harvard.edu/ai/weeks/5/
 """
 import numpy as np
 import sys
