@@ -50,18 +50,31 @@ class Dense(Layer):
         yield self.W
         if self.use_bias:
             yield self.B
+    
+    def get_config(self):
+        return {
+            'output_dim': self.output_dim,
+            'input_dim': self.input_dim,
+            'use_bias': self.use_bias
+        }
+
+    def set_weights(self, weights):
+        self.W = Parameter(weights[0])
+        if self.use_bias and len(weights) > 1:
+            self.B = Parameter(weights[1])
+        self.built = True
 
 
 class Conv2D(Layer):
     def __init__(self, 
-        num_filters: int,
+        n_filters: int,
         kernel_size: tuple[int, int],
         strides: tuple[int,int]=(1, 1),
         padding: bool=True,
         use_bias: bool=True,
     ) -> None:
         super().__init__()
-        self.n_filters = num_filters
+        self.n_filters = n_filters
         self.kernel_size = kernel_size
         self.strides = strides
         self.padding = padding
@@ -130,6 +143,22 @@ class Conv2D(Layer):
         yield self.W
         if self.use_bias:
             yield self.B
+    
+    def get_config(self):
+        return {
+            'num_filters': self.n_filters,
+            'kernel_size': self.kernel_size,
+            'strides': self.use_bias,
+            'padding': self.padding,
+            'use_bias': self.use_bias,
+            'n_channels': self.n_channels
+        }
+
+    def set_weights(self, weights):
+        self.W = Parameter(weights[0])
+        if self.use_bias and len(weights) > 1:
+            self.B = Parameter(weights[1])
+        self.built = True
 
 
 class Flatten(Layer):
@@ -181,3 +210,9 @@ class MaxPooling2D(Layer):
         dX[c_idx, global_h, global_w, n_idx] = dZ
         
         return dX
+    
+    def get_config(self):
+        return {
+            'pool_size': self.pool_size,
+            'strides': self.strides
+        }

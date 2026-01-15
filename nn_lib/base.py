@@ -29,6 +29,13 @@ class Layer:
         return
         yield 
 
+    def get_config(self):
+        """
+        Returns hyperparameters of the layer.
+        Form: dict {keyword = value}
+        """
+        return {}
+
     def __str__(self):
         """
         Returns the name of the class. 

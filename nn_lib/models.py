@@ -2,9 +2,10 @@ import numpy as np
 from . import losses
 from . import optimizers
 from tqdm import tqdm
+import pickle
 
-class Sequential:
-    def __init__(self, layers, loss='MSE', optimizer='SGD', 
+class Model:
+    def __init__(self, layers, loss, optimizer, 
                 loss_params=None, optimizer_params=None):
         self.layers = layers
 
@@ -58,19 +59,6 @@ class Sequential:
         else:
             self._optimizer = value
 
-    def forward(self, X: np.ndarray) -> np.ndarray:
-        for layer in self.layers:
-            if not layer.built:
-                layer.build(X.shape)
-
-            X = layer.forward(X)
-
-        return X
-
-    def backward(self, dY: np.ndarray) -> np.ndarray:
-        for layer in reversed(self.layers):
-            dY = layer.backward(dY)
-
     def train(self, X: np.ndarray, Y: np.ndarray, epochs: int = 10, batch_size: int = 32) -> None:
         n_samples = X.shape[-1]
 
@@ -105,9 +93,6 @@ class Sequential:
 
                 pbar.set_postfix({'loss': f'{(epoch_loss / n_batches):.4f}'})
 
-            avg_loss = epoch_loss / n_batches
-            print(f"Epoch {epoch+1}: Avg Loss = {avg_loss:.4f}")
-
     def predict(self, X: np.ndarray) -> np.ndarray:
         Y_hat = self.forward(X)
         
@@ -116,3 +101,99 @@ class Sequential:
             return self.loss.activation.forward(Y_hat)
             
         return Y_hat
+
+    def save(self, filepath: str) -> None:
+        """
+        Save the model architecture and weights to a file.
+        Only saves essential information: layer configs and parameter values.
+        """
+        # Extract lightweight layer information only containing weights
+        layers_data = []
+        for layer in self.layers:
+            layer_data = {
+                'class_name': layer.__class__.__name__,
+                'module': layer.__class__.__module__,
+                'config': layer.get_config() if hasattr(layer, 'get_config') else {},
+                'weights': [param.data for param in layer.get_parameters()]
+            }
+            layers_data.append(layer_data)
+        
+        model_data = {
+            'class_name': self.__class__.__name__,
+            'layers': layers_data,
+            'loss': self._loss.__class__.__name__,
+            'optimizer': self._optimizer.__class__.__name__,
+            'loss_params': self._loss_params,
+            'optimizer_params': self._optimizer_params
+        }
+        
+        with open(filepath, 'wb') as f:
+            pickle.dump(model_data, f)
+        
+        print(f"Model saved to {filepath}")
+
+    @classmethod
+    def load(cls, filepath: str) -> 'Model':
+        """
+        Load a model from a file.
+        """
+        with open(filepath, 'rb') as f:
+            model_data = pickle.load(f)
+        
+        layers = []
+        for layer_data in model_data['layers']:
+
+            module_parts = layer_data['module'].split('.')
+            if module_parts[0] == '.':
+                from . import layers as layers_module
+
+                layer_class = getattr(layers_module, layer_data['class_name'])
+            else:
+                import importlib
+                
+                module = importlib.import_module(layer_data['module'])
+                layer_class = getattr(module, layer_data['class_name'])
+            
+            # Create layer instance
+            layer = layer_class(**layer_data['config'])
+            
+            # Set weights if available using the layer's set_weights method
+            if layer_data['weights'] and hasattr(layer, 'set_weights'):
+                layer.set_weights(layer_data['weights'])
+            
+            layers.append(layer)
+        
+        # Get the model
+        model_class = globals().get(model_data['class_name'], cls)
+
+        
+        # Create model instance
+        model = model_class(
+            layers=layers,
+            loss=model_data['loss'],
+            optimizer=model_data['optimizer'],
+            loss_params=model_data['loss_params'],
+            optimizer_params=model_data['optimizer_params']
+        )
+        
+        print(f"Model loaded from {filepath}")
+        return model
+
+
+class Sequential(Model):
+    def __init__(self, layers, loss='MSE', optimizer='SGD', 
+                loss_params=None, optimizer_params=None):
+        super().__init__(layers, loss, optimizer, loss_params, optimizer_params)
+
+    def forward(self, X: np.ndarray) -> np.ndarray:
+        for layer in self.layers:
+            if not layer.built:
+                layer.build(X.shape)
+
+            X = layer.forward(X)
+
+        return X
+
+    def backward(self, dY: np.ndarray) -> np.ndarray:
+        for layer in reversed(self.layers):
+            dY = layer.backward(dY)
