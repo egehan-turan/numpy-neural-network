@@ -18,7 +18,6 @@ x_train = x_train.reshape(
 x_test = x_test.reshape(
     x_test.shape[0], x_test.shape[1], x_test.shape[2], 1
 )
-
 x_train = x_train.transpose(3, 1, 2, 0)
 y_train = y_train.transpose(1, 0)
 
@@ -52,3 +51,6 @@ optimizer_params={'learning_rate': 0.001}
 
 print("Training started...")
 model.train(x_train, y_train, epochs=10)
+
+# Save model
+model.save('mnist_model.pkl')
