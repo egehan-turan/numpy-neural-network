@@ -2,6 +2,7 @@
 Code taken from Harvard CS50 AI Course
 """
 import numpy as np
+import sys
 import pygame
 import nn_lib as nn
 
