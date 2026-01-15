@@ -11,10 +11,8 @@ def main():
 
     # Define the Model
     model = nn.models.Sequential([
-        nn.layers.Dense(64), 
-        nn.activations.ReLU(),
-        nn.layers.Dense(32), 
-        nn.activations.ReLU(),
+        nn.layers.Dense(64, activation='ReLU'), 
+        nn.layers.Dense(32, activation='ReLU'), 
         nn.layers.Dense(3)  
     ], 
     loss="SoftmaxCCE", 
@@ -30,7 +28,7 @@ def main():
     plot_spiral_data(X, Y, model)
 
     # Save model
-    model.save('spiral_model.pkl')
+    # model.save('spiral_model.pkl')
 
 
 def plot_spiral_data(X, Y, model):

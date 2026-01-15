@@ -1,9 +1,35 @@
 import numpy as np
+from . import activations
 
 class Layer:
-    def __init__(self, dtype=None):
+    def __init__(self, dtype=np.float32, activation=None):
+        self.activation = activation
         self.dtype = dtype
         self.built = False
+
+    # --------------------------
+    # Activation Property
+    # --------------------------
+    @property
+    def activation(self):
+        return self._activation
+
+    @activation.setter
+    def activation(self, value):
+        """
+        If value is a string, look it up in the losses module.
+        If it's already an object/instance, just assign it.
+        """
+        if isinstance(value, str):
+            try:
+                activation_class = getattr(activations, value)
+                self._activation = activation_class()
+                self._activation.dtype = self.dtype
+            except AttributeError:
+                raise ValueError(f"Activation '{value}' not found in activations.py")
+        else:
+            self._activation = value
+            self._activation.dtype = self.dtype
 
     def build(self, input_shape):
         """
@@ -22,16 +48,39 @@ class Layer:
         else:
             self.dtype = A.dtype
             return A
-
-    def forward(self, input_data):
+            
+    def forward(self, A: np.ndarray) -> np.ndarray:
         """
-        Computes the output of the layer for a given input.
+        Computes the output of the layer for a given input 
+        combined with activation.
+        """
+        Z = self._forward(A)
+        
+        if self.activation:
+            return self.activation.forward(Z)
+        return Z
+
+    def backward(self, dA: np.ndarray) -> np.ndarray:
+        """
+        Computes the gradient of the loss with respect to the input
+        combined with activation.
+        """
+        if self.activation:
+            dA = self.activation.backward(dA)
+        
+        # 2. Backprop through the layer's specific math
+        return self._backward(dA)
+
+    def _forward(self, x):
+        """
+        Computes the output of the layer for a given input
         """
         raise NotImplementedError
 
-    def backward(self, output_gradient):
+    def _backward(self, grad):
         """
-        Computes the gradient of the loss with respect to the input.
+        Computes the gradient of the loss with respect to the input
+        combined with activation.
         """
         raise NotImplementedError
 

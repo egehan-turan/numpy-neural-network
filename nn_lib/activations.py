@@ -6,11 +6,11 @@ class ReLU(Layer):
         super().__init__()
         self.built = True
 
-    def forward(self, Z: np.ndarray) -> np.ndarray:
+    def _forward(self, Z: np.ndarray) -> np.ndarray:
         self.Z = self._cast_input(Z)
         return np.maximum(0, self.Z)
 
-    def backward(self, dA: np.ndarray) -> np.ndarray:
+    def _backward(self, dA: np.ndarray) -> np.ndarray:
         self.dZ = dA.copy()
         self.dZ[self.Z <= 0] = 0
         return self.dZ
@@ -21,12 +21,12 @@ class Sigmoid(Layer):
         super().__init__()
         self.built = True
 
-    def forward(self, Z: np.ndarray) -> np.ndarray:
+    def _forward(self, Z: np.ndarray) -> np.ndarray:
         Z = self._cast_input(Z)
         self.A = 1 / (1 + np.exp(-Z))
         return self.A
 
-    def backward(self, dA: np.ndarray) -> np.ndarray:
+    def _backward(self, dA: np.ndarray) -> np.ndarray:
         return dA * self.A * (1 - self.A)
 
 
@@ -35,7 +35,7 @@ class Softmax(Layer):
         super().__init__()
         self.built = True
 
-    def forward(self, Z: np.ndarray) -> np.ndarray:
+    def _forward(self, Z: np.ndarray) -> np.ndarray:
         Z = self._cast_input(Z)
         # For this to work in arbitrary dimentions
         feature_axes = tuple(range(Z.ndim - 1))
@@ -46,7 +46,7 @@ class Softmax(Layer):
         self.A = exps / np.sum(exps, axis=feature_axes, keepdims=True)
         return self.A
 
-    def backward(self, dA: np.ndarray) -> np.ndarray:
+    def _backward(self, dA: np.ndarray) -> np.ndarray:
         """
         Jacobian is A_i * (delta_ij - A_j)
         Distributing we get dZ_i = A_i * (dA_i - sum_j(dA_j * A_j))

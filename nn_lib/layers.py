@@ -9,9 +9,10 @@ class Dense(Layer):
         output_dim: int, 
         input_dim: int = 0, 
         use_bias: bool = True,
-        dtype: npt.DTypeLike=np.float32
+        dtype: npt.DTypeLike=np.float32, 
+        activation: str=None
     ) -> None:
-        super().__init__(dtype)
+        super().__init__(dtype=dtype, activation=activation)
         self.output_dim = output_dim
         self.use_bias = use_bias
         if input_dim != 0:
@@ -33,7 +34,7 @@ class Dense(Layer):
 
         self.built = True
 
-    def forward(self, A: np.ndarray) -> np.ndarray:
+    def _forward(self, A: np.ndarray) -> np.ndarray:
         A = self._cast_input(A)
         self.A = A
 
@@ -42,7 +43,7 @@ class Dense(Layer):
             Z += self.B.data
         return Z
 
-    def backward(self, dZ: np.ndarray) -> np.ndarray:
+    def _backward(self, dZ: np.ndarray) -> np.ndarray:
         dZ = self._cast_input(dZ)
 
         self.W.grad += (dZ @ self.A.T) 
@@ -80,9 +81,10 @@ class Conv2D(Layer):
         padding: bool=True,
         use_bias: bool=True,
         n_channels: int=None,
-        dtype: npt.DTypeLike=np.float32
+        dtype: npt.DTypeLike=np.float32,
+        activation:str =None
     ) -> None:
-        super().__init__(dtype)
+        super().__init__(dtype=dtype, activation=activation)
         self.n_filters = n_filters
         self.kernel_size = kernel_size
         self.strides = strides
@@ -104,7 +106,7 @@ class Conv2D(Layer):
 
         self.built = True
     
-    def forward(self, A: np.ndarray) -> np.ndarray:
+    def _forward(self, A: np.ndarray) -> np.ndarray:
         A = self._cast_input(A)
         self.A_shape = A.shape
 
@@ -124,7 +126,7 @@ class Conv2D(Layer):
 
         return Z
 
-    def backward(self, dZ: np.ndarray) -> np.ndarray:
+    def _backward(self, dZ: np.ndarray) -> np.ndarray:
         dZ = self._cast_input(dZ)
 
         windows = sliding_window_view(self.A, self.kernel_size, axis=(1, 2))        
@@ -185,12 +187,12 @@ class Flatten(Layer):
         super().__init__()
         self.built = True
 
-    def forward(self, A: np.ndarray) -> np.ndarray:
+    def _forward(self, A: np.ndarray) -> np.ndarray:
         A = self._cast_input(A)
         self.input_shape = A.shape 
         return A.reshape(-1, self.input_shape[-1])
 
-    def backward(self, dY: np.ndarray) -> np.ndarray:
+    def _backward(self, dY: np.ndarray) -> np.ndarray:
         return dY.reshape(self.input_shape)
 
 
@@ -205,7 +207,7 @@ class MaxPooling2D(Layer):
         else:
             self.strides = pool_size
 
-    def forward(self, A: np.ndarray) -> np.ndarray:
+    def _forward(self, A: np.ndarray) -> np.ndarray:
         A = self._cast_input(A)
         self.A_shape = A.shape
         windows = sliding_window_view(A, self.pool_size, axis=(1, 2))        
@@ -214,7 +216,7 @@ class MaxPooling2D(Layer):
         self.mask = np.argmax(windows.reshape(*windows.shape[:-2], -1), axis=-1)
         return res
 
-    def backward(self, dZ: np.ndarray) -> np.ndarray:
+    def _backward(self, dZ: np.ndarray) -> np.ndarray:
         n_channels, height, width, n_samples = dZ.shape
         
         grid_h = np.arange(height)[None, :, None, None]
@@ -247,7 +249,7 @@ class Dropout(Layer):
         self.mask = None
         self.training = True  
 
-    def forward(self, inputs: np.ndarray) -> np.ndarray:
+    def _forward(self, inputs: np.ndarray) -> np.ndarray:
         if not self.training or self.rate == 0:
             return inputs
         
@@ -259,8 +261,8 @@ class Dropout(Layer):
         
         return inputs * self.mask
 
-    def backward(self, grad_output: np.ndarray) -> np.ndarray:
-        # Only the neurons that were 'active' in the forward pass 
+    def _backward(self, grad_output: np.ndarray) -> np.ndarray:
+        # Only the neurons that were 'active' in the _forward pass 
         # allow the gradient to flow back.
         return grad_output * self.mask
     
