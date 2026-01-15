@@ -60,8 +60,18 @@ class Model:
         else:
             self._optimizer = value
 
-    def train(self, X: np.ndarray, Y: np.ndarray, epochs: int = 10, batch_size: int = 32, update_interval: float=0.5) -> None:
+    def train(self, X: np.ndarray, Y: np.ndarray, epochs: int = 10, batch_size: int = 32,
+        loss_threshold: float=None, update_interval: float=0.5) -> None:
+        
+        # Toggle training flag
+        for layer in self.layers:
+            if hasattr(layer, 'training'):
+                layer.training = True
+        
         n_samples = X.shape[-1]
+        n_batches = (n_samples + batch_size - 1) // batch_size
+    
+        print(f"Training started: {n_samples} samples, {n_batches} batches per epoch.")
 
         for epoch in range(epochs):
             indices = np.random.permutation(n_samples)
@@ -95,7 +105,17 @@ class Model:
 
                 pbar.set_postfix({'loss': f'{(epoch_loss / n_batches):.4f}'}, refresh=False)
 
+            if loss_threshold and epoch_loss / n_batches < loss_threshold:
+                print(f"Loss threshold reached: Loss={epoch_loss / n_batches:.6f} <= Threshold={loss_threshold}")
+                print("Training finished.")
+                break
+
     def predict(self, X: np.ndarray) -> np.ndarray:
+        # Toggle training flag
+        for layer in self.layers:
+            if hasattr(layer, 'training'):
+                layer.training = False
+
         Y_hat = self.forward(X)
         
         # If the loss class specifies an activation, use it

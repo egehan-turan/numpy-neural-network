@@ -29,6 +29,7 @@ class Sigmoid(Layer):
     def backward(self, dA: np.ndarray) -> np.ndarray:
         return dA * self.A * (1 - self.A)
 
+
 class Softmax(Layer):
     def __init__(self):
         super().__init__()

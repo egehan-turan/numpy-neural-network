@@ -237,3 +237,34 @@ class MaxPooling2D(Layer):
             'pool_size': self.pool_size,
             'strides': self.strides
         }
+
+class Dropout(Layer):
+    def __init__(self, rate: float=0.2):
+        super().__init__()
+        self.built = True
+
+        self.rate = rate
+        self.mask = None
+        self.training = True  
+
+    def forward(self, inputs: np.ndarray) -> np.ndarray:
+        if not self.training or self.rate == 0:
+            return inputs
+        
+        # Create a binary mask: 1 with probability (1 - rate), 0 with probability rate
+        # We use 'Inverted Dropout' by dividing by (1 - rate) so that the expected 
+        # sum of activations remains the same during training and testing.
+        keep_prob = 1 - self.rate
+        self.mask = np.random.binomial(1, keep_prob, size=inputs.shape) / keep_prob
+        
+        return inputs * self.mask
+
+    def backward(self, grad_output: np.ndarray) -> np.ndarray:
+        # Only the neurons that were 'active' in the forward pass 
+        # allow the gradient to flow back.
+        return grad_output * self.mask
+    
+    def get_config(self):
+        return {
+            'rate': self.rate
+        }

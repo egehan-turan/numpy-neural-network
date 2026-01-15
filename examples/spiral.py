@@ -25,8 +25,7 @@ def main():
     Y_one_hot = np.eye(NUM_CLASSES)[Y].T
 
     # Train
-    print("Training started...")
-    model.train(X, Y_one_hot, epochs=500)
+    model.train(X, Y_one_hot, epochs=1000)
 
     plot_spiral_data(X, Y, model)
 
@@ -49,7 +48,7 @@ def plot_spiral_data(X, Y, model):
     grid_points = np.c_[xx.ravel(), yy.ravel()].T
 
     # Forward pass through the model
-    Z_raw = model.forward(grid_points)
+    Z_raw = model.predict(grid_points)
     # Get the predicted class
     Z = np.argmax(Z_raw, axis=0) 
 
