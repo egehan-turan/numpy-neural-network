@@ -272,3 +272,81 @@ class Dropout(Layer):
         return {
             'rate': self.rate
         }
+
+
+class BatchNorm(Layer):
+    def __init__(self, 
+        momentum: float = 0.9,
+        epsilon: float = 1e-5,
+        dtype: npt.DTypeLike=np.float32, 
+        activation: str=None
+    ) -> None:
+        super().__init__(dtype=dtype, activation=activation)
+        self.momentum = momentum
+        self.epsilon = epsilon
+        self.training = True
+
+    def build(self, input_shape: tuple[int, ...]) -> None:
+        gamma = np.ones((*input_shape[:-1], 1), dtype=self.dtype)
+        self.gamma = Parameter(gamma, dtype=self.dtype)
+
+        beta = np.zeros((*input_shape[:-1], 1), dtype=self.dtype)
+        self.beta = Parameter(beta, dtype=self.dtype)
+
+        self.running_mean = np.zeros((*input_shape[:-1], 1), dtype=self.dtype)
+        self.running_var = np.ones((*input_shape[:-1], 1), dtype=self.dtype)
+
+        self.built = True
+
+    def _forward(self, X: np.ndarray) -> np.ndarray:
+        X = self._cast_input(X)
+        
+        if self.training:
+            mu = np.mean(X, axis=-1, keepdims=True)
+            var = np.var(X, axis=-1, keepdims=True)
+            
+            self.running_mean = self.momentum * self.running_mean + (1 - self.momentum) * mu
+            self.running_var = self.momentum * self.running_var + (1 - self.momentum) * var
+        else:
+            mu = self.running_mean
+            var = self.running_var
+
+        self.std_inv = 1.0 / np.sqrt(var + self.epsilon)
+        self.X_centered = X - mu
+        self.X_hat = self.X_centered * self.std_inv
+        
+        return self.gamma.data * self.X_hat + self.beta.data
+
+    def _backward(self, dY: np.ndarray) -> np.ndarray:
+        dY = self._cast_input(dY)
+        n_samples = dY.shape[-1] 
+  
+        self.gamma.grad += np.sum(dY * self.X_hat, axis=-1, keepdims=True)
+        self.beta.grad += np.sum(dY, axis=-1, keepdims=True)
+        
+        dX_hat = dY * self.gamma.data
+        
+        dX = (1. / n_samples) * self.std_inv * (
+            n_samples * dX_hat - 
+            np.sum(dX_hat, axis=-1, keepdims=True) - 
+            self.X_hat * np.sum(dX_hat * self.X_hat, axis=-1, keepdims=True)
+        )
+        
+        return dX
+
+    def get_parameters(self):
+        yield self.gamma
+        yield self.beta
+    
+    def get_config(self):
+        return {
+            'momentum': self.momentum,
+            'epsilon': self.epsilon,
+            'dtype': self.dtype, 
+            'activation': self._activation.__class__.__name__
+        }
+
+    def set_parameters(self, weights):
+        self.gamma = Parameter(weights[0])
+        self.beta = Parameter(weights[1])
+        self.built = True
