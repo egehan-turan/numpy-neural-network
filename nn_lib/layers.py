@@ -63,7 +63,8 @@ class Dense(Layer):
             'output_dim': self.output_dim,
             'input_dim': self.input_dim,
             'use_bias': self.use_bias,
-            'dtype': self.dtype
+            'dtype': self.dtype, 
+            'activation': None if self._activation is None else self._activation.__class__.__name__
         }
 
     def set_parameters(self, weights):
@@ -172,7 +173,8 @@ class Conv2D(Layer):
             'padding': self.padding,
             'use_bias': self.use_bias,
             'n_channels': self.n_channels,
-            'dtype': self.dtype
+            'dtype': self.dtype, 
+            'activation': None if self._activation is None else self._activation.__class__.__name__
         }
 
     def set_parameters(self, weights):

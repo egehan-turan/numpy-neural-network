@@ -1,10 +1,9 @@
 import numpy as np
-from . import activations
 
 class Layer:
     def __init__(self, dtype=np.float32, activation=None):
-        self.activation = activation
         self.dtype = dtype
+        self.activation = activation
         self.built = False
 
     # --------------------------
@@ -21,6 +20,7 @@ class Layer:
         If it's already an object/instance, just assign it.
         """
         if isinstance(value, str):
+            from . import activations
             try:
                 activation_class = getattr(activations, value)
                 self._activation = activation_class()
@@ -29,7 +29,8 @@ class Layer:
                 raise ValueError(f"Activation '{value}' not found in activations.py")
         else:
             self._activation = value
-            self._activation.dtype = self.dtype
+            if value != None:
+                self._activation.dtype = self.dtype
 
     def build(self, input_shape):
         """
