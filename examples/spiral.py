@@ -17,58 +17,51 @@ def main():
     ], 
     loss="SoftmaxCCE", 
     optimizer='Adam', 
-    optimizer_params={'learning_rate': 0.001} 
+    optimizer_params={'learning_rate': 0.001},
+    sample_axis=0
     )
 
-    Y_one_hot = np.eye(NUM_CLASSES)[Y].T
+    Y_one_hot = np.eye(NUM_CLASSES)[Y]
 
     # Train
-    model.train(X, Y_one_hot, epochs=1000)
+    model.train(X, Y_one_hot, epochs=10)
 
-    plot_spiral_data(X, Y, model)
+    plot_data(X.T, Y, model)
 
     # Save model
     # model.save('spiral_model.pkl')
 
 
-def plot_spiral_data(X, Y, model):
+def plot_data(X, Y, model):
 
-    # Define the grid boundaries 
+    # Define the grid boundaries (using your specific X indexing)
     x_min, x_max = X[0, :].min() - 0.5, X[0, :].max() + 0.5
     y_min, y_max = X[1, :].min() - 0.5, X[1, :].max() + 0.5
-    h = 0.02  # Step size in the mesh
+    h = 0.02
 
     # Create the meshgrid 
     xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
                         np.arange(y_min, y_max, h))
 
-    # Flatten the grid and stack into (2, N) format to match your X shape
-    grid_points = np.c_[xx.ravel(), yy.ravel()].T
+    grid_points = np.c_[xx.ravel(), yy.ravel()]
 
-    # Forward pass through the model
+    # Forward pass and Argmax (using your axis=0 logic)
     Z_raw = model.predict(grid_points)
-    # Get the predicted class
-    Z = np.argmax(Z_raw, axis=0) 
-
-    # Reshape back to the grid shape for plotting
+    Z = np.argmax(Z_raw, axis=1) 
+        
     Z = Z.reshape(xx.shape)
 
-    plt.figure(figsize=(8, 8))
-
-    # Draw the filled contours (the decision regions)
+    plt.figure(figsize=(8, 7.5))
+    
     plt.contourf(xx, yy, Z, cmap='jet', alpha=0.3)
 
     # Overlay the original scatter points
     plt.scatter(X[0, :], X[1, :], c=Y, s=30, cmap='jet', edgecolors='k')
 
     plt.title("Model Decision Boundaries")
-    plt.xlabel("Feature 1")
-    plt.ylabel("Feature 2")
     plt.xlim(xx.min(), xx.max())
     plt.ylim(yy.min(), yy.max())
     plt.show()
-
-    return
 
 
 def create_spiral_data(samples, classes):
@@ -84,7 +77,7 @@ def create_spiral_data(samples, classes):
         t = np.linspace(start_angle, start_angle + twist, samples) + np.random.randn(samples) * 0.2        
         X[ix] = np.c_[r * np.sin(t), r * np.cos(t)]
         y[ix] = j
-    return X.T, y
+    return X, y
 
 if __name__ == '__main__':
     main()
