@@ -1,14 +1,18 @@
 import numpy as np
 from . import losses
 from . import optimizers
+from . import helpers
 from tqdm import tqdm
 import pickle
+import time
 
 
 class Model:
     def __init__(self, layers, loss, optimizer, 
-                loss_params=None, optimizer_params=None):
+                loss_params: dict=None, optimizer_params: dict=None,
+                sample_axis: int=-1):
         self.layers = layers
+        self.sample_axis=sample_axis
 
         self._loss_params = loss_params or {}
         self._optimizer_params = optimizer_params or {}
@@ -67,11 +71,16 @@ class Model:
         for layer in self.layers:
             if hasattr(layer, 'training'):
                 layer.training = True
+
+        # This framework works in form (features_axes, samples)
+        X = np.moveaxis(X, self.sample_axis, -1)
+        Y = np.moveaxis(Y, self.sample_axis, -1)
         
         n_samples = X.shape[-1]
         n_batches = (n_samples + batch_size - 1) // batch_size
     
         print(f"Training started: {n_samples} samples, {n_batches} batches per epoch.")
+        start_time = time.time()
 
         for epoch in range(epochs):
             indices = np.random.permutation(n_samples)
@@ -103,12 +112,20 @@ class Model:
                     for param in layer.get_parameters():
                         param.zero_grad()
 
-                pbar.set_postfix({'loss': f'{(epoch_loss / n_batches):.4f}'}, refresh=False)
+                pbar.set_postfix({'loss': helpers.format_number(epoch_loss / n_batches)}, refresh=False)
 
             if loss_threshold and epoch_loss / n_batches < loss_threshold:
                 print(f"Loss threshold reached: Loss={epoch_loss / n_batches:.6f} <= Threshold={loss_threshold}")
                 print("Training finished.")
                 break
+
+        results = {
+        "training_time": time.time() - start_time,
+        "final_loss": epoch_loss / n_batches,
+        "epochs_completed": epoch + 1
+        }
+        
+        return results
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         # Toggle training flag
@@ -116,12 +133,15 @@ class Model:
             if hasattr(layer, 'training'):
                 layer.training = False
 
+        X = np.moveaxis(X, self.sample_axis, -1)
+
         Y_hat = self.forward(X)
         
         # If the loss class specifies an activation, use it
         if hasattr(self.loss, 'activation'):
-            return self.loss.activation.forward(Y_hat)
+            Y_hat = self.loss.activation.forward(Y_hat)
             
+        Y_hat = np.moveaxis(Y_hat, -1, self.sample_axis)
         return Y_hat
 
     def save(self, filepath: str) -> None:
@@ -202,9 +222,8 @@ class Model:
 
 
 class Sequential(Model):
-    def __init__(self, layers, loss='MSE', optimizer='SGD', 
-                loss_params=None, optimizer_params=None):
-        super().__init__(layers, loss, optimizer, loss_params, optimizer_params)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         for layer in self.layers:
