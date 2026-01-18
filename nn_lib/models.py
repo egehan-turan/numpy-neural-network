@@ -65,7 +65,7 @@ class Model:
             self._optimizer = value
 
     def train(self, X: np.ndarray, Y: np.ndarray, epochs: int = 10, batch_size: int = 32,
-        loss_threshold: float=None, update_interval: float=0.5) -> None:
+        loss_threshold: float=None, update_interval: float=0.1) -> None:
         
         # Toggle training flag
         for layer in self.layers:
@@ -124,7 +124,7 @@ class Model:
         "final_loss": epoch_loss / n_batches,
         "epochs_completed": epoch + 1
         }
-        
+
         return results
 
     def predict(self, X: np.ndarray) -> np.ndarray:
