@@ -26,12 +26,10 @@ y_train = y_train.transpose(1, 0)
 
 # Create a CNN
 model = nn.models.Sequential([
-    nn.layers.Conv2D(32, (3, 3)),
-    nn.activations.ReLU(),
-    nn.layers.MaxPooling2D(pool_size=(2, 2)),
+    nn.layers.FastConv2D(32, (3, 3), activation="ReLU"),
+    nn.layers.FastMaxPooling2D(pool_size=(2, 2)),
     nn.layers.Flatten(),
-    nn.layers.Dense(128),
-    nn.activations.ReLU(),
+    nn.layers.Dense(128, activation="ReLU"),
     nn.layers.Dense(10)
 ], 
 loss="SoftmaxCCE", 
@@ -40,7 +38,9 @@ optimizer_params={'learning_rate': 0.001}
 )
 
 print("Training started...")
-model.train(x_train, y_train, epochs=10)
+res = model.train(x_train, y_train, epochs=10)
 
 # Save model
-model.save('mnist_model.pkl')
+model.save('mnist_model_with_fast_layers.pkl')
+
+print(res['training_time'])

@@ -7,7 +7,7 @@ import sys
 import pygame
 import nn_lib as nn
 
-model = nn.models.Model.load('mnist_model.pkl')
+model = nn.models.Model.load('mnist_model_with_fast_layers.pkl')
 
 # Colors
 BLACK = (0, 0, 0)
