@@ -100,6 +100,9 @@ class Layer:
         """
         return {}
 
+    def set_parameters(self, weights):
+        return
+
     def __str__(self):
         """
         Returns the name of the class. 
