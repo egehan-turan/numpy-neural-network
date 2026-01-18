@@ -276,8 +276,8 @@ class Dropout(Layer):
 
 class BatchNorm(Layer):
     def __init__(self, 
-        momentum: float = 0.9,
-        epsilon: float = 1e-5,
+        momentum: float = 0.99,
+        epsilon: float = 0.001,
         dtype: npt.DTypeLike=np.float32, 
         activation: str=None
     ) -> None:
