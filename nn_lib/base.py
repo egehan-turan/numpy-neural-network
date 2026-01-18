@@ -1,7 +1,7 @@
 import numpy as np
 
 class Layer:
-    def __init__(self, dtype=np.float32, activation=None):
+    def __init__(self, dtype=None, activation=None):
         self.dtype = dtype
         self.activation = activation
         self.built = False
