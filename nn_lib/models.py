@@ -189,7 +189,8 @@ class Model:
             'loss': self._loss.__class__.__name__,
             'optimizer': self._optimizer.__class__.__name__,
             'loss_params': self._loss_params,
-            'optimizer_params': self._optimizer_params
+            'optimizer_params': self._optimizer_params,
+            'sample_axis': self.sample_axis
         }
         
         with open(filepath, 'wb') as f:
@@ -237,7 +238,8 @@ class Model:
             loss=model_data['loss'],
             optimizer=model_data['optimizer'],
             loss_params=model_data['loss_params'],
-            optimizer_params=model_data['optimizer_params']
+            optimizer_params=model_data['optimizer_params'],
+            sample_axis=model_data['sample_axis']
         )
         
         print(f"Model loaded from {filepath}")
