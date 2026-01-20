@@ -360,6 +360,8 @@ class BatchNorm(Layer):
     def __init__(self, 
         momentum: float = 0.99,
         epsilon: float = 0.001,
+        running_mean: float = None,
+        running_var: float = None,
         dtype: npt.DTypeLike = np.float32, 
         activation: str = None
     ) -> None:
@@ -369,6 +371,10 @@ class BatchNorm(Layer):
 
         # Flag to determine mode (training, prediction)
         self.training = True
+
+        if running_mean is not None:
+            self.running_mean = running_mean
+            self.running_var = running_var
 
     def build(self, input_shape: tuple[int]) -> None:
         gamma = np.ones((*input_shape[:-1], 1), dtype=self.dtype)
@@ -435,8 +441,10 @@ class BatchNorm(Layer):
         return {
             'momentum': self.momentum,
             'epsilon': self.epsilon,
+            'running_mean': self.running_mean,
+            'running_var': self.running_var,
             'dtype': self.dtype, 
-            'activation': self._activation.__class__.__name__
+            'activation': None if self._activation is None else self._activation.__class__.__name__
         }
 
     def set_parameters(self, weights: list[np.ndarray]) -> None:
