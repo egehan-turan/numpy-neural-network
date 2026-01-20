@@ -5,6 +5,7 @@ from . import helpers
 from tqdm import tqdm
 import pickle
 import time
+import signal
 
 
 class Model:
@@ -63,9 +64,17 @@ class Model:
                 raise ValueError(f"Optimizer '{value}' not found in optimizers.py")
         else:
             self._optimizer = value
+            
+    def _signal_handler(self, sig, frame):
+        print("\n[Interrupt Received] Finishing current batch and saving...")
+        self.stop_training = True
 
     def train(self, X: np.ndarray, Y: np.ndarray, epochs: int = 10, batch_size: int = 32,
-        loss_threshold: float=None, update_interval: float=0.1) -> None:
+        loss_threshold: float=None, update_interval: float=0.1, save_filepath: str=None) -> None:
+
+        self.stop_training = False
+        original_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, self._signal_handler)
         
         # Toggle training flag
         for layer in self.layers:
@@ -79,50 +88,64 @@ class Model:
         n_samples = X.shape[-1]
         n_batches = (n_samples + batch_size - 1) // batch_size
     
-        print(f"Training started: {n_samples} samples, {n_batches} batches per epoch.")
+        print(f"Training started: {n_samples} samples, {n_batches} batches per epoch.\nYou can press Ctrl+C to stop training gracefully.")
         start_time = time.time()
 
-        for epoch in range(epochs):
-            indices = np.random.permutation(n_samples)
-            X_shuffled = X[..., indices]
-            Y_shuffled = Y[..., indices]
+        try:
+            for epoch in range(epochs):
+                if self.stop_training: break
 
-            epoch_loss = 0.0
-            n_batches = 0
+                indices = np.random.permutation(n_samples)
+                X_shuffled = X[..., indices]
+                Y_shuffled = Y[..., indices]
 
-            pbar = tqdm(range(0, n_samples, batch_size), 
-                        desc=f"Epoch {epoch+1}/{epochs}",
-                        unit="batch",
-                        mininterval=update_interval)
-            for i in pbar:
-                X_mini = X_shuffled[..., i : i + batch_size]
-                Y_mini = Y_shuffled[..., i : i + batch_size]
+                epoch_loss = 0.0
+                n_batches = 0
 
-                Y_hat = self.forward(X_mini)
-                batch_loss = self.loss.loss(Y_mini, Y_hat)
-                epoch_loss += batch_loss
-                n_batches += 1
+                pbar = tqdm(range(0, n_samples, batch_size), 
+                            desc=f"Epoch {epoch+1}/{epochs}",
+                            unit="batch",
+                            mininterval=update_interval)
+                for i in pbar:
+                    if self.stop_training: 
+                        pbar.close()
+                        print(f'Training stopped gracefully.')
+                        break
 
-                grad = self.loss.gradient(Y_mini, Y_hat)
-                self.backward(grad)
-                self.optimizer.optimize(self.layers)
+                    X_mini = X_shuffled[..., i : i + batch_size]
+                    Y_mini = Y_shuffled[..., i : i + batch_size]
 
-                # Reset gradients
-                for layer in self.layers:
-                    for param in layer.get_parameters():
-                        param.zero_grad()
+                    Y_hat = self.forward(X_mini)
+                    batch_loss = self.loss.loss(Y_mini, Y_hat)
+                    epoch_loss += batch_loss
+                    n_batches += 1
 
-                pbar.set_postfix({'loss': helpers.format_number(epoch_loss / n_batches)}, refresh=False)
+                    grad = self.loss.gradient(Y_mini, Y_hat)
+                    self.backward(grad)
+                    self.optimizer.optimize(self.layers)
 
-            if loss_threshold and epoch_loss / n_batches < loss_threshold:
-                print(f"Loss threshold reached: Loss={epoch_loss / n_batches:.6f} <= Threshold={loss_threshold}")
-                print("Training finished.")
-                break
+                    # Reset gradients
+                    for layer in self.layers:
+                        for param in layer.get_parameters():
+                            param.zero_grad()
+
+                    pbar.set_postfix({'loss': helpers.format_number(epoch_loss / n_batches)}, refresh=False)
+
+                print(f'Epoch loss: {helpers.format_number(epoch_loss / n_batches)}')
+                if loss_threshold and epoch_loss / n_batches < loss_threshold:
+                    print(f"Loss threshold reached: Loss={epoch_loss / n_batches:.6f} <= Threshold={loss_threshold}")
+                    print("Training finished.")
+                    break
+
+        finally:
+            signal.signal(signal.SIGINT, original_handler)
+
 
         results = {
         "training_time": time.time() - start_time,
         "final_loss": epoch_loss / n_batches,
-        "epochs_completed": epoch + 1
+        "epochs_completed": epoch + 1,
+        "interrupted": self.stop_training
         }
 
         return results
